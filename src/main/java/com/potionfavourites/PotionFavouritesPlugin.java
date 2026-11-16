@@ -17,12 +17,14 @@ import lombok.Value;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.Point;
+import net.runelite.api.ScriptID;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -35,6 +37,23 @@ import net.runelite.client.ui.overlay.OverlayManager;
 	tags = {"potion", "store", "favourites", "bank", "drag"}
 )
 public class PotionFavouritesPlugin extends Plugin {
+	@Value
+	private static class Click {
+		int param0;
+
+		int param1;
+
+		MenuAction action;
+
+		int id;
+
+		int itemId;
+
+		String option;
+
+		String target;
+	}
+
 	@Value
 	static class Row {
 		int start;
@@ -58,6 +77,9 @@ public class PotionFavouritesPlugin extends Plugin {
 	private PotionFavouritesConfig config;
 
 	@Inject
+	private ClientThread clientThread;
+
+	@Inject
 	private ConfigManager configManager;
 
 	@Inject
@@ -65,7 +87,7 @@ public class PotionFavouritesPlugin extends Plugin {
 
 	private PotionFavouritesOverlay overlay;
 
-	private MenuOptionClicked held;
+	private Click held;
 
 	private Point origin;
 
@@ -88,6 +110,11 @@ public class PotionFavouritesPlugin extends Plugin {
 		overlayManager.remove(overlay);
 		held = null;
 		dragging = false;
+		clientThread.invoke(() -> {
+			if (open()) {
+				client.runScript(ScriptID.POTIONSTORE_BUILD);
+			}
+		});
 	}
 
 	@Subscribe
@@ -98,7 +125,7 @@ public class PotionFavouritesPlugin extends Plugin {
 
 	@Subscribe
 	public void onScriptPostFired(ScriptPostFired event) {
-		if (event.getScriptId() == 6080 || event.getScriptId() == 6555) {
+		if (event.getScriptId() == ScriptID.POTIONSTORE_BUILD || event.getScriptId() == ScriptID.POTIONSTORE_DOSE_CHANGE) {
 			arrange();
 		}
 	}
@@ -116,7 +143,7 @@ public class PotionFavouritesPlugin extends Plugin {
 		}
 
 		event.consume();
-		held = event;
+		held = new Click(event.getParam0(), event.getParam1(), event.getMenuAction(), event.getId(), event.getMenuEntry().getItemId(), event.getMenuOption(), event.getMenuTarget());
 		start = row;
 		origin = mouse;
 		dragging = false;
@@ -138,7 +165,7 @@ public class PotionFavouritesPlugin extends Plugin {
 			return;
 		}
 
-		MenuOptionClicked click = held;
+		Click click = held;
 		boolean moved = dragging;
 		held = null;
 		dragging = false;
@@ -151,7 +178,7 @@ public class PotionFavouritesPlugin extends Plugin {
 		}
 
 		replaying = true;
-		client.menuAction(click.getParam0(), click.getParam1(), click.getMenuAction(), click.getId(), click.getMenuEntry().getItemId(), click.getMenuOption(), click.getMenuTarget());
+		client.menuAction(click.param0, click.param1, click.action, click.id, click.itemId, click.option, click.target);
 		replaying = false;
 	}
 
