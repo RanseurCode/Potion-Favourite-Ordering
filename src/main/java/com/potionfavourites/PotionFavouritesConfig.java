@@ -13,7 +13,7 @@ public interface PotionFavouritesConfig extends Config {
 	@ConfigItem(
 		keyName = "insert",
 		name = "Insert mode",
-		description = "Dropping a favourite onto another inserts it at that position and shifts the rest, instead of swapping them",
+		description = "Moving a favourite inserts it at the chosen position and shifts the rest, instead of swapping the two",
 		position = 0
 	)
 	default boolean insert() {

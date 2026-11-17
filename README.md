@@ -1,16 +1,16 @@
 # Potion Favourites
 
-Re-order your favourites in the bank's potion store by dragging them.
+Re-order your favourites in the bank's potion store from the right-click menu.
 
-Pick up a favourite and drop it onto another to change their places. The order is saved to your RuneLite profile, so it survives relogging and the potion store redrawing itself, for example after a withdraw.
+Right-click a favourite and choose **Move**. The favourite is highlighted, and every other favourite now has **Swap with** at the top of its menu, so a left-click on one changes their places. Choose **Cancel move** on the highlighted favourite, or click anywhere else, to back out. The order is saved to your RuneLite profile, so it survives relogging and the potion store redrawing itself, for example after a withdraw.
 
-A plain click still withdraws as normal. The drag only starts once you move the mouse a few pixels with the button held.
+Normal clicks are untouched until you choose Move.
 
 ## Options
 
 | Option | Description |
 | --- | --- |
-| Insert mode | Off by default. When off, dropping a favourite onto another swaps the two. When on, the dragged favourite is inserted at the position you drop it and the ones in between shift along. |
+| Insert mode | Off by default. When off, the second favourite you pick swaps places with the first. When on, the first is inserted at the second's position and the ones in between shift along. |
 
 ## Notes
 

@@ -16,10 +16,11 @@ import lombok.Getter;
 import lombok.Value;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
-import net.runelite.api.Point;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.PostMenuSort;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarPlayerID;
@@ -33,27 +34,10 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 @PluginDescriptor(
 	name = "Potion Favourites",
-	description = "Drag a favourite onto another in the potion store to re-order them",
-	tags = {"potion", "store", "favourites", "bank", "drag"}
+	description = "Re-order your favourites in the potion store from the right-click menu",
+	tags = {"potion", "store", "favourites", "bank", "order"}
 )
 public class PotionFavouritesPlugin extends Plugin {
-	@Value
-	private static class Click {
-		int param0;
-
-		int param1;
-
-		MenuAction action;
-
-		int id;
-
-		int itemId;
-
-		String option;
-
-		String target;
-	}
-
 	@Value
 	static class Row {
 		int start;
@@ -87,17 +71,8 @@ public class PotionFavouritesPlugin extends Plugin {
 
 	private PotionFavouritesOverlay overlay;
 
-	private Click held;
-
-	private Point origin;
-
 	@Getter(AccessLevel.PACKAGE)
-	private int start;
-
-	@Getter(AccessLevel.PACKAGE)
-	private boolean dragging;
-
-	private boolean replaying;
+	private int moving = -1;
 
 	@Override
 	protected void startUp() {
@@ -108,8 +83,7 @@ public class PotionFavouritesPlugin extends Plugin {
 	@Override
 	protected void shutDown() {
 		overlayManager.remove(overlay);
-		held = null;
-		dragging = false;
+		moving = -1;
 		clientThread.invoke(() -> {
 			if (open()) {
 				client.runScript(ScriptID.POTIONSTORE_BUILD);
@@ -119,8 +93,10 @@ public class PotionFavouritesPlugin extends Plugin {
 
 	@Subscribe
 	public void onClientTick(ClientTick event) {
+		if (!open()) {
+			moving = -1;
+		}
 		arrange();
-		track();
 	}
 
 	@Subscribe
@@ -132,21 +108,28 @@ public class PotionFavouritesPlugin extends Plugin {
 
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event) {
-		Point mouse = client.getMouseCanvasPosition();
-		if (replaying || mouse == null || event.getMenuAction() != MenuAction.CC_OP || event.getParam1() != InterfaceID.Bankmain.POTIONSTORE_ITEMS || !open()) {
+		if (event.getMenuAction() != MenuAction.RUNELITE) {
+			moving = -1;
+		}
+	}
+
+	@Subscribe
+	public void onPostMenuSort(PostMenuSort event) {
+		if (!open()) {
 			return;
 		}
 
-		int row = event.getParam0() / 5 * 5;
-		if (row(row).filter(found -> !found.isStar(event.getParam0())).isEmpty()) {
-			return;
-		}
+		for (MenuEntry entry : client.getMenuEntries()) {
+			if (entry.getType() != MenuAction.CC_OP || entry.getParam1() != InterfaceID.Bankmain.POTIONSTORE_ITEMS) {
+				continue;
+			}
 
-		event.consume();
-		held = new Click(event.getParam0(), event.getParam1(), event.getMenuAction(), event.getId(), event.getMenuEntry().getItemId(), event.getMenuOption(), event.getMenuTarget());
-		start = row;
-		origin = mouse;
-		dragging = false;
+			Optional<Row> row = row(entry.getParam0() / 5 * 5).filter(found -> !found.isStar(entry.getParam0()));
+			if (row.isPresent()) {
+				offer(row.get().getStart(), entry.getTarget());
+				return;
+			}
+		}
 	}
 
 	@Provides
@@ -154,32 +137,29 @@ public class PotionFavouritesPlugin extends Plugin {
 		return configManager.getConfig(PotionFavouritesConfig.class);
 	}
 
-	private void track() {
-		Point mouse = client.getMouseCanvasPosition();
-		if (held == null || mouse == null) {
-			return;
+	private void offer(int row, String target) {
+		if (moving == -1) {
+			client.createMenuEntry(1)
+				.setOption("Move")
+				.setTarget(target)
+				.setType(MenuAction.RUNELITE)
+				.onClick(entry -> moving = row);
+		} else if (moving == row) {
+			client.createMenuEntry(-1)
+				.setOption("Cancel move")
+				.setTarget(target)
+				.setType(MenuAction.RUNELITE)
+				.onClick(entry -> moving = -1);
+		} else {
+			client.createMenuEntry(-1)
+				.setOption(config.insert() ? "Insert here" : "Swap with")
+				.setTarget(target)
+				.setType(MenuAction.RUNELITE)
+				.onClick(entry -> {
+					move(moving, row);
+					moving = -1;
+				});
 		}
-
-		dragging |= Math.hypot(mouse.getX() - origin.getX(), mouse.getY() - origin.getY()) > 6;
-		if (client.getMouseCurrentButton() != 0) {
-			return;
-		}
-
-		Click click = held;
-		boolean moved = dragging;
-		held = null;
-		dragging = false;
-		if (moved) {
-			rows().stream()
-				.filter(row -> row.bounds().contains(mouse.getX(), mouse.getY()))
-				.findFirst()
-				.ifPresent(target -> move(start, target.getStart()));
-			return;
-		}
-
-		replaying = true;
-		client.menuAction(click.param0, click.param1, click.action, click.id, click.itemId, click.option, click.target);
-		replaying = false;
 	}
 
 	private void arrange() {

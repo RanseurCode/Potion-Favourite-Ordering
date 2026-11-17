@@ -25,20 +25,20 @@ public class PotionFavouritesOverlay extends Overlay {
 	@Override
 	public Dimension render(Graphics2D graphics) {
 		Point mouse = client.getMouseCanvasPosition();
-		if (!plugin.isDragging() || mouse == null) {
+		if (plugin.getMoving() == -1 || mouse == null) {
 			return null;
 		}
 
-		plugin.row(plugin.getStart()).ifPresent(source -> {
+		plugin.row(plugin.getMoving()).ifPresent(source -> {
 			Rectangle box = source.bounds();
+			graphics.setColor(new Color(255, 255, 255, 60));
+			graphics.fillRect(box.x, box.y, box.width, box.height);
 			graphics.setColor(Color.WHITE);
 			graphics.drawRect(box.x, box.y, box.width, box.height);
-			graphics.setColor(new Color(255, 255, 255, 60));
-			graphics.fillRect(mouse.getX() - box.width / 2, mouse.getY() - box.height / 2, box.width, box.height);
 		});
 
 		plugin.rows().stream()
-			.filter(row -> row.getStart() != plugin.getStart() && row.bounds().contains(mouse.getX(), mouse.getY()))
+			.filter(row -> row.getStart() != plugin.getMoving() && row.bounds().contains(mouse.getX(), mouse.getY()))
 			.findFirst()
 			.ifPresent(target -> {
 				Rectangle box = target.bounds();
