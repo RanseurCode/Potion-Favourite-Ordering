@@ -2,9 +2,9 @@
 
 Re-order your favourites in the bank's potion store from the right-click menu.
 
-Right-click a favourite and choose **Move**. The favourite is highlighted, and every other favourite now has **Swap with** at the top of its menu, so a left-click on one changes their places. Choose **Cancel move** on the highlighted favourite, or click anywhere else, to back out. The order is saved to your RuneLite profile, so it survives relogging and the potion store redrawing itself, for example after a withdraw.
+Hold shift and right-click a favourite, then choose **Move**. The favourite is highlighted, and every other favourite now has **Swap with** at the top of its menu, so a left-click on one changes their places. Choose **Cancel move** on the highlighted favourite, or click anywhere else, to back out. The order is saved to your RuneLite profile, so it survives relogging and the potion store redrawing itself, for example after a withdraw.
 
-Normal clicks are untouched until you choose Move.
+Without shift, the menu is untouched, so normal clicks are never affected until you choose Move.
 
 ## Options
 

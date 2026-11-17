@@ -15,6 +15,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Value;
 import net.runelite.api.Client;
+import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ScriptID;
@@ -115,7 +116,7 @@ public class PotionFavouritesPlugin extends Plugin {
 
 	@Subscribe
 	public void onPostMenuSort(PostMenuSort event) {
-		if (!open()) {
+		if (!open() || moving == -1 && !client.isKeyPressed(KeyCode.KC_SHIFT)) {
 			return;
 		}
 
